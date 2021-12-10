@@ -13,6 +13,7 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
+    "jsxImportSource": "@emotion/react",
     "module": "esnext",
     "moduleResolution": "node",
     "resolveJsonModule": true,
