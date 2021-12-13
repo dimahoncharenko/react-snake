@@ -1,121 +1,188 @@
-import { useState, useEffect, useCallback, KeyboardEvent } from "react";
+import { KeyboardEvent, useEffect, useState } from "react";
 
 import Cell from "./Cell";
 import { StyledStage, StageWrapper } from "../styles/StageWrapper";
+import {
+  CellType,
+  createStage,
+  checkAvailableCell,
+  tuple,
+  generateFood,
+  checkCollision,
+  createSnake,
+} from "../gameHelpers";
 
-import { checkCollision, checkAvailableCell, updateFoodPos, createSnake } from "../gameHelpers";
+export type Snake = [number, number][];
+export type Direction = [number, number];
+export type Food = [number, number];
+export type Board = [number, CellType][][];
 
-export type Props = {
-    stage: number[][]
-}
+type Directions = {
+  [P in "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight"]: [number, number];
+};
 
-const Stage = ({ stage }: Props) => {
-    const [snake, setSnake] = useState<[number, number][]>([[1, 1]]);
-    const [food, setFood] = useState<[number, number]>([0, 0]); 
-    const [speed, setSpeed] = useState<null | number>(null);
-    const [isGameOver, setGameOver] = useState(false);
-    const [currentDirection, setCurrentDirection] = useState<[number, number]>([1, 0]);
-    const [scores, setScores] = useState(0);
+const directions: Directions = {
+  ArrowUp: [-1, 0],
+  ArrowDown: [1, 0],
+  ArrowLeft: [0, -1],
+  ArrowRight: [0, 1],
+};
 
-    const handleKeyDown = ({ key }: KeyboardEvent<HTMLDivElement>) => {
-        if (isGameOver) return;
+const Stage = () => {
+  const [stageState, setStage] = useState<Board>(createStage());
+  const [snake, setSnake] = useState<Snake>(createSnake());
+  const [direction, setDirection] = useState<Direction>([1, 0]);
+  const [food, setFood] = useState<Food>([5, 5]);
+  const [isGameOver, setGameOver] = useState(false);
+  const [level, setLevel] = useState(1);
+  const [snakeSpeed, setSnakeSpeed] = useState(1000);
+  const [scores, setScores] = useState(0);
 
-        switch (key) {
-            case "ArrowUp":
-                changeDirection([-1, 0]);    
-                break;
-            case "ArrowDown":
-                changeDirection([1, 0]);
-                break;
-            case "ArrowLeft":
-                changeDirection([0, -1]);
-                break;
-            case "ArrowRight":
-                changeDirection([0, 1]);
-                break;
-        }
-    };
-
-    const changeDirection = (nextStep: [number, number]) => {
+  const changeDirection = ({ key }: KeyboardEvent<HTMLDivElement>) => {
+    if (isGameOver) return;
+    switch (key) {
+      case "ArrowUp":
         if (
-            (nextStep[0] === -1 && currentDirection[0] === 1) || 
-            (nextStep[0] === 1 && currentDirection[0] === -1) || 
-            (nextStep[1] === 1 && currentDirection[1] === -1) || 
-            (nextStep[1] === -1 && currentDirection[1] === 1)
-        ) return;
-        setCurrentDirection(nextStep);
+          direction[0] === directions["ArrowDown"][0] &&
+          direction[1] === directions["ArrowDown"][1]
+        ) {
+          break;
+        }
+        setDirection(directions[key]);
+        break;
+      case "ArrowDown":
+        if (
+          direction[0] === directions["ArrowUp"][0] &&
+          direction[1] === directions["ArrowUp"][1]
+        ) {
+          break;
+        }
+        setDirection(directions[key]);
+        break;
+      case "ArrowLeft":
+        if (
+          direction[0] === directions["ArrowRight"][0] &&
+          direction[1] === directions["ArrowRight"][1]
+        ) {
+          break;
+        }
+        setDirection(directions[key]);
+        break;
+      case "ArrowRight":
+        if (
+          direction[0] === directions["ArrowLeft"][0] &&
+          direction[1] === directions["ArrowLeft"][1]
+        ) {
+          break;
+        }
+        setDirection(directions[key]);
+        break;
     }
+  };
 
-    const gameLoop = useCallback(() => {
-        const newSnake = Array.from(snake);
-
-        if (checkCollision(
-            snake,
-            [
-                checkAvailableCell(newSnake[newSnake.length - 1][0] + currentDirection[0]),
-                checkAvailableCell(newSnake[newSnake.length - 1][1] + currentDirection[1])
-            ]
-        )) {
-            return setGameOver(true);
-        };
+  useEffect(() => {
+    if (isGameOver) return;
+    const timerId = setInterval(() => {
+      const updateSnake = (prev: Snake) => {
+        let newSnake = Array.from(prev);
 
         const head: [number, number] = [
-            checkAvailableCell(newSnake[newSnake.length - 1][0] += currentDirection[0]),
-            checkAvailableCell(newSnake[newSnake.length - 1][1] += currentDirection[1])
+          ...checkAvailableCell(newSnake[newSnake.length - 1], direction),
         ];
 
         newSnake.push(head);
-
-        let index = 1;
         if (head[0] === food[0] && head[1] === food[1]) {
-            index = 0;
-            setScores(prev => prev + 1)
-            setFood(updateFoodPos(snake));
+          setFood(generateFood(snake));
+          setScores((prev) => prev + 1);
+          if ((scores + 1) % 10 === 0) {
+            setLevel((prev) => prev + 1);
+            setSnakeSpeed((prev) => Math.max(prev - 150, 200));
+          }
+          return newSnake;
         }
 
-        setSnake(newSnake.slice(index));
-    }, [snake, currentDirection, food]);
+        newSnake.shift();
 
-    useEffect(() => {
-        if (isGameOver) return;
+        return newSnake;
+      };
 
-        if (!speed) return;
-        const timerId = setInterval(() => {
-            gameLoop();
-            setSpeed(prev => scores % 10 === 9 ? prev! - 30 : prev);
-        }, speed);
+      setSnake(updateSnake);
+    }, snakeSpeed);
 
-        return () => clearInterval(timerId);
-    }, [gameLoop, speed, isGameOver, scores]);
+    return () => clearInterval(timerId);
+  }, [direction, food, isGameOver, setSnakeSpeed, snakeSpeed, snake, scores]);
 
-    const startGame = () => {
-        setGameOver(false);
-        setSpeed(600);
-        setScores(0);
-        setSnake(createSnake());
-    }
+  useEffect(() => {
+    const updateStage = (prev: Board) => {
+      let newStage: Board = Array.from(prev).map((row) =>
+        row.map((cell) =>
+          cell[1] === "snake" || cell[1] === "head" ? tuple(0, "empty") : cell
+        )
+      );
 
-    return <StageWrapper role="button" tabIndex={0} onKeyDown={handleKeyDown}> 
-                <StyledStage>
-                {stage.map((row, index_row) => (
-                    <div className="row" key={index_row}>
-                        {row.map((cell, index_cell) => {
-                            let type: "food" | "snake" | false = snake.some(pos => pos[0] === index_row && pos[1] === index_cell) && "snake";
-                            if (type !== "snake") {
-                                type = (food[0] === index_row && food[1] === index_cell) && "food";
-                            }
+      for (let y = 0; y < newStage.length; y++) {
+        for (let x = 0; x < newStage[y].length; x++) {
+          const snakeIndex = snake.findIndex(
+            (cell) => cell[0] === y && cell[1] === x
+          );
 
-                            return <Cell key={index_cell} type={(type === false ? "empty" : type)}/>
-                        })}
-                    </div>
-                ))}
-                <div className="stats">
-                    <p>Scores: {scores}</p>
-                    <button onClick={startGame}>Start Game!</button>
-                    <p>{isGameOver ? "Game Over!" : ""}</p>
-                </div>
-            </StyledStage>
-        </StageWrapper>
-};      
+          if (food[0] === y && food[1] === x) {
+            newStage[food[0]][food[1]] = [0, "food"];
+          }
+
+          if (snakeIndex > -1) {
+            newStage[snake[snakeIndex][0]][snake[snakeIndex][1]] = [0, "snake"];
+          }
+
+          newStage[snake[snake.length - 1][0]][snake[snake.length - 1][1]] = [
+            0,
+            "head",
+          ];
+        }
+      }
+
+      if (checkCollision(snake)) {
+        setGameOver(true);
+      }
+
+      return newStage;
+    };
+
+    setStage(updateStage);
+  }, [snake, food]);
+
+  const startGame = () => {
+    setGameOver(false);
+    setSnakeSpeed(1000);
+    setLevel(1);
+    setScores(0);
+    setSnake(createSnake());
+    setDirection([1, 0]);
+  };
+
+  return (
+    <StageWrapper role="button" tabIndex={0} onKeyDown={changeDirection}>
+      <StyledStage>
+        {stageState.map((row, y) => (
+          <div className="row" key={y}>
+            {row.map((cell, x) => {
+              return <Cell type={cell[1]} key={x} />;
+            })}
+          </div>
+        ))}
+        <div className="stats">
+          <p>Level: {level}</p>
+          {isGameOver && (
+            <p>
+              Game Over!
+              <button onClick={startGame}>Start again?</button>
+            </p>
+          )}
+          <p>Scores: {scores}</p>
+        </div>
+      </StyledStage>
+    </StageWrapper>
+  );
+};
 
 export default Stage;
