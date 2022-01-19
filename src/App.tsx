@@ -1,5 +1,6 @@
 // Components
 import Stage from "./components/Stage";
+
 function App() {
   return <Stage />;
 }

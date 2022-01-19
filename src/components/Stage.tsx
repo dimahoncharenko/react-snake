@@ -97,10 +97,11 @@ const Stage = () => {
 
     // handle collision between snake and fruit
     if (snake.some((cell) => cell[0] === fruit[0] && cell[1] === fruit[1])) {
-      // every tenth eaten fruit increase level
+      // every tenth eaten fruit increase level and speed
       counter.current = (counter.current + 1) % 10;
       if (counter.current === 0) {
         increaseLevel();
+        setSnakeSpeed((state) => Math.max(state - 50, 100));
       }
 
       addScore();
