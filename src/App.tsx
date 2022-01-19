@@ -1,11 +1,10 @@
 // Components
 import Stage from "./components/Stage";
-
 function App() {
   return (
-    <div className="App">
+    <>
       <Stage />
-    </div>
+    </>
   );
 }
 

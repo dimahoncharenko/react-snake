@@ -1,22 +1,16 @@
 import styled from "@emotion/styled";
 
-import { Props as CellProps } from "../components/Cell";
+import { CellType } from "../gameUtils";
 
-export default styled.div<{
-  type: CellProps["type"];
+export const StyledCell = styled.div<{
+  cellType: CellType;
 }>`
-  --cell-size: 4em;
-
-  width: var(--cell-size);
-  height: var(--cell-size);
-  border: 0.05em solid lightgreen;
-
-  background-color: ${(props) =>
-    props.type === "food"
-      ? "hsl(56.95deg, 84.55%, 54.31%)"
-      : props.type === "snake"
-      ? "hsl(142deg, 70%,30%)"
-      : props.type === "head"
-      ? "hsl(120deg, 40%, 20%)"
-      : "transparent"};
+  background-color: ${({ cellType }) =>
+    cellType === "empty"
+      ? "transparent"
+      : cellType === "fruit"
+      ? "red"
+      : cellType === "snake_body"
+      ? "green"
+      : "yellow"};
 `;

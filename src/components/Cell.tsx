@@ -1,10 +1,13 @@
-import StyledCell from "../styles/StyledCell";
-import { CellType } from "../gameHelpers";
+import { StyledCell } from "../styles/StyledCell";
 
-export type Props = {
+import { CellType } from "../gameUtils";
+
+type Props = {
   type: CellType;
 };
 
-const Cell = ({ type = "empty" }: Props) => <StyledCell type={type} />;
+const Cell = ({ type }: Props) => {
+  return <StyledCell cellType={type} />;
+};
 
 export default Cell;
